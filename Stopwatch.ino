@@ -89,7 +89,8 @@ int matrix[4][3][4] = {
   {{0,y+14,40,8},{boxWidth,y+14,40,8},{2*(boxWidth+gap),y+14,40,8}},
   {{0,y+25,40,8},{boxWidth,y+25,40,8},{2*(boxWidth+gap),y+25,40,8}}
 };
-int cursor[2] = {0,0}; 
+int cursor[2] = {0,0};
+static int temp = 0; 
 SemaphoreHandle_t cur;
 
 typedef struct {
@@ -109,17 +110,12 @@ SemaphoreHandle_t status_c;
 volatile int last_up = 10;
 volatile int curr_pos = 0;
 
-volatile int inside = 0;
-
 int blink[] = {0,0,0};
 SemaphoreHandle_t blink_fn;
 
-
 int selected = 0;
 
-
-
-TaskHandle_t mainHandle, inMainHandle,tim1, tim2, tim3;
+TaskHandle_t mainHandle;
 
 clock_tim data[3];
 SemaphoreHandle_t clock_data;
@@ -236,7 +232,6 @@ void button(void *param){
                 else{
                   data[cursor[1]].mode = 1;
                 }
-                
               }
               break;
             }
@@ -266,7 +261,7 @@ void button(void *param){
             }
           }
           case 5:{
-            isPressed = 10;
+            isPressed = 10;          
             selected = (selected + 1)%2;
             break;
           }
@@ -333,131 +328,47 @@ void timer1(void *param){
   while(1){
     vTaskDelay(pdMS_TO_TICKS(1000));
     if(xSemaphoreTake(clock_data,portMAX_DELAY) && xSemaphoreTake(status_c,portMAX_DELAY) ){
-      if(status[0]==1){
-        if(data[0].mode==1){
-          if(data[0].sec==59){
-            if(data[0].minute==59){
-              data[0].hour+=1;
-              data[0].minute=0;
-            }
-            else{
-              data[0].minute+=1;
-              data[0].sec=0;
-            }
-
-          }
-          else{
-            data[0].sec+=1;
-          }
-        }
-        else{
-          if(data[0].hour==0 && data[0].minute==0 && data[0].sec==0){
-            if(xSemaphoreTake(blink_fn,portMAX_DELAY)){
-              blink[0]=1;
-              xSemaphoreGive(blink_fn);
-            }
-            
-          }
-          else{
-            if(data[0].sec==0){
-              if(data[0].minute==0){
-                data[0].hour-=1;
-                data[0].minute=59;
+      for(int i=0;i<3;i++){
+        if(status[i]==1){
+          if(data[i].mode==1){
+            if(data[i].sec==59){
+              if(data[i].minute==59){
+                data[i].hour+=1;
+                data[i].minute=0;
               }
               else{
-                data[0].minute-=1;
-                data[0].sec=59;
+                data[i].minute+=1;
+                data[i].sec=0;
               }
 
             }
             else{
-              data[0].sec-=1;
+              data[i].sec+=1;
             }
           }
-        }
-      }
-      if(status[1]==1){
-        if(data[1].mode==1){
-          if(data[1].sec==59){
-            if(data[1].minute==59){
-              data[1].hour+=1;
-              data[1].minute=0;
+          else{
+            if(data[i].hour==0 && data[i].minute==0 && data[i].sec==0){
+              if(xSemaphoreTake(blink_fn,portMAX_DELAY)){
+                blink[i]=1;
+                xSemaphoreGive(blink_fn);
+              }
+              
             }
             else{
-              data[1].minute+=1;
-              data[1].sec=0;
-            }
+              if(data[i].sec==0){
+                if(data[i].minute==0){
+                  data[i].hour-=1;
+                  data[i].minute=59;
+                }
+                else{
+                  data[i].minute-=1;
+                  data[i].sec=59;
+                }
 
-          }
-          else{
-            data[1].sec+=1;
-          }
-        }
-        else{
-          if(data[1].hour==0 && data[1].minute==0 && data[1].sec==0){
-            if(xSemaphoreTake(blink_fn,portMAX_DELAY)){
-              blink[1]=1;
-              xSemaphoreGive(blink_fn);
-            }
-            
-          }
-          else{
-            if(data[1].sec==0){
-              if(data[1].minute==0){
-                data[1].hour-=1;
-                data[1].minute=59;
               }
               else{
-                data[1].minute-=1;
-                data[1].sec=59;
+                data[i].sec-=1;
               }
-
-            }
-            else{
-              data[1].sec-=1;
-            }
-          }
-        }
-      }
-      if(status[2]==1){
-        if(data[2].mode==1){
-          if(data[2].sec==59){
-            if(data[2].minute==59){
-              data[2].hour+=1;
-              data[2].minute=0;
-            }
-            else{
-              data[2].minute+=1;
-              data[2].sec=0;
-            }
-
-          }
-          else{
-            data[2].sec+=1;
-          }
-        }
-        else{
-          if(data[2].hour==0 && data[2].minute==0 && data[2].sec==0){
-            if(xSemaphoreTake(blink_fn,portMAX_DELAY)){
-              blink[2]=1;
-              xSemaphoreGive(blink_fn);
-            }
-            
-          }
-          else{
-            if(data[2].sec==0){
-              if(data[2].minute==0){
-                data[2].hour-=1;
-                data[2].minute=59;
-              }
-              else{
-                data[2].minute-=1;
-                data[2].sec=59;
-              }
-
-            }
-            else{
-              data[2].sec-=1;
             }
           }
         }
@@ -474,7 +385,7 @@ void timer1(void *param){
 void buzzer(void *param){
   while(1){
     if(xSemaphoreTake(blink_fn,portMAX_DELAY)){
-      int temp = 0;
+      temp = 0;
       for(int i=0;i<3;i++){
         temp+=blink[i];
       }
@@ -496,14 +407,11 @@ void buzzer(void *param){
 
 void mainScreen(void *param){
   while(1){
-
     if(curr_pos==0 && last_up!=curr_pos){
       display.clearDisplay();
       display.setTextSize(1);       // Smallest text
       display.setTextColor(WHITE);
 
-      
-      // Coordinate
       for (int i = 0; i < 3; i++) {
         int x = i * (boxWidth + gap);
         
@@ -573,16 +481,13 @@ void setup() {
   status_c =  xSemaphoreCreateMutex(); 
   cur =  xSemaphoreCreateMutex(); 
   blink_fn = xSemaphoreCreateMutex(); 
-  int x = 0;
-  while(x<2){
-    display.clearDisplay();
-    display.display();
-    delay(500);
-    display.drawBitmap(0, 0, myBitmap, 128, 64, WHITE);
-    display.display();
-    delay(500);
-    x++;
-  }
+  
+  display.clearDisplay();
+  display.drawBitmap(0, 0, myBitmap, 128, 64, WHITE);
+  display.display();
+  delay(2000);
+
+  display.clearDisplay();
 
   
  
