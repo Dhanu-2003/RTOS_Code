@@ -1,105 +1,613 @@
-#include <Arduino.h>
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
-#include "freertos/timers.h"
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
+
+#define SCREEN_WIDTH 128
+#define SCREEN_HEIGHT 64
+#define OLED_RESET    -1
+Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
+
+const int buttonPins[7] = {0, 15, 4, 5, 13, 12, 14};
+
+int boxWidth = 40;
+int boxHeight = 40;
+int gap = 2;
+int y = 22;
+
+const unsigned char myBitmap [] PROGMEM = {
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xe0, 0x00, 
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x78, 0x00, 
+	0x00, 0x00, 0x00, 0x00, 0x00, 0xf0, 0x00, 0x00, 0x03, 0x80, 0x07, 0x01, 0xff, 0x00, 0x7c, 0x00, 
+	0x00, 0x00, 0x00, 0x00, 0x00, 0xe0, 0x00, 0x00, 0x03, 0x80, 0x07, 0x03, 0xff, 0x80, 0x3c, 0x00, 
+	0x00, 0x00, 0x00, 0x00, 0x00, 0xe0, 0x00, 0x00, 0x07, 0x80, 0x07, 0x03, 0xff, 0x80, 0x3e, 0x00, 
+	0x00, 0x00, 0x00, 0x00, 0x01, 0xe0, 0x00, 0x00, 0x07, 0x00, 0x0f, 0x03, 0xc3, 0xc0, 0x3e, 0x00, 
+	0x00, 0x00, 0x00, 0x00, 0x01, 0xe0, 0x00, 0x00, 0x07, 0x00, 0x0f, 0x03, 0x83, 0xc0, 0x3e, 0x00, 
+	0x00, 0x1f, 0x9e, 0x78, 0xf1, 0xff, 0x07, 0xe1, 0xff, 0x06, 0x0e, 0x07, 0x87, 0x80, 0x3e, 0x00, 
+	0x00, 0x3f, 0xdf, 0xff, 0xf9, 0xff, 0x8f, 0xf3, 0xff, 0x0e, 0x0e, 0x07, 0x87, 0x80, 0x3e, 0x00, 
+	0x00, 0x79, 0xff, 0xff, 0x79, 0xef, 0x9e, 0xf7, 0xcf, 0x1e, 0x1e, 0x07, 0xff, 0x00, 0x3e, 0x00, 
+	0x00, 0xf1, 0xde, 0x3c, 0x3b, 0xc3, 0xfc, 0x7f, 0x0e, 0x1e, 0x1e, 0x07, 0xfe, 0x00, 0x7e, 0x00, 
+	0x00, 0xf3, 0xde, 0x3c, 0x7b, 0xc3, 0xfc, 0xff, 0x0e, 0x1e, 0x1c, 0x07, 0xfc, 0x00, 0x7e, 0x00, 
+	0x00, 0xff, 0x9c, 0x3c, 0x7b, 0xc3, 0xff, 0xee, 0x0e, 0x1e, 0x1c, 0x0f, 0x3c, 0x00, 0xfc, 0x00, 
+	0x00, 0xfe, 0x1c, 0x38, 0x73, 0x83, 0xff, 0x8e, 0x1e, 0x1e, 0x1c, 0x0f, 0x1e, 0x00, 0xfc, 0x00, 
+	0x00, 0xe0, 0x3c, 0x38, 0x77, 0x87, 0xf8, 0x0e, 0x1e, 0x1e, 0x1e, 0x1f, 0x1e, 0x01, 0xf8, 0x00, 
+	0x00, 0xf0, 0xbc, 0x78, 0x77, 0x8f, 0x78, 0x0f, 0x3e, 0x1f, 0x1f, 0xfe, 0x1e, 0x03, 0xf8, 0x00, 
+	0x00, 0xff, 0xbc, 0x78, 0xf7, 0xfe, 0x3f, 0xef, 0xfc, 0x1f, 0x0f, 0xfc, 0x0e, 0x07, 0xf0, 0x00, 
+	0x00, 0x7f, 0x38, 0x78, 0xf7, 0xfc, 0x1f, 0xc7, 0xfc, 0x1f, 0x07, 0xf8, 0x0f, 0x07, 0xe0, 0x00, 
+	0x00, 0x1c, 0x00, 0x00, 0x01, 0xe0, 0x00, 0x03, 0x80, 0x1f, 0x00, 0x00, 0x00, 0x0f, 0xe0, 0x00, 
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x1f, 0x80, 0x00, 0x00, 0x1f, 0xc0, 0x00, 
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0f, 0x80, 0x00, 0x00, 0x3f, 0x00, 0x00, 
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0f, 0x80, 0x00, 0x00, 0xfe, 0x00, 0x00, 
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0f, 0xc0, 0x00, 0x03, 0xfc, 0x00, 0x00, 
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0f, 0xc0, 0x00, 0x0f, 0xf0, 0x00, 0x00, 
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x07, 0xe0, 0x00, 0x7f, 0xe0, 0x00, 0x00, 
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x07, 0xe0, 0x1f, 0xff, 0x00, 0x00, 0x00, 
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03, 0xf0, 0x1f, 0xf8, 0x00, 0x00, 0x00, 
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0xf0, 0x00, 0x00, 0x00, 0x00, 0x00, 
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0xf8, 0x00, 0x00, 0x00, 0x00, 0x00, 
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xf8, 0x00, 0x00, 0x00, 0x00, 0x00, 
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x7c, 0x00, 0x00, 0x00, 0x00, 0x00, 
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x1e, 0x00, 0x00, 0x00, 0x00, 0x00, 
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+};
+
+
+#define BUZZER_PIN 27
+
+int matrix[4][3][4] = {
+  {{0, 4, 40, 14},{boxWidth+gap, 4, 40, 14},{2*(boxWidth+gap), 4, 40, 14}},
+  {{0,y+5,40,8},{boxWidth,y+5,40,8},{2*(boxWidth+gap),y+5,40,8}},
+  {{0,y+14,40,8},{boxWidth,y+14,40,8},{2*(boxWidth+gap),y+14,40,8}},
+  {{0,y+25,40,8},{boxWidth,y+25,40,8},{2*(boxWidth+gap),y+25,40,8}}
+};
+int cursor[2] = {0,0}; 
+SemaphoreHandle_t cur;
+
+typedef struct {
+  int id;
+  int mode;
+  int minute;
+  int sec;
+  int hour;
+
+}clock_tim;
+
+volatile int toggle = 0;
+
+int status[] = {0,0,0};
+SemaphoreHandle_t status_c;
+
+volatile int last_up = 10;
+volatile int curr_pos = 0;
+
+volatile int inside = 0;
+
+int blink[] = {0,0,0};
+SemaphoreHandle_t blink_fn;
+
+
+int selected = 0;
 
 
 
-#define START_BUTTON_PIN 12
-#define STOP_BUTTON_PIN 13
-#define RESET_BUTTON_PIN 14
+TaskHandle_t mainHandle, inMainHandle,tim1, tim2, tim3;
+
+clock_tim data[3];
+SemaphoreHandle_t clock_data;
 
 
-
-volatile bool running = false;
-volatile uint32_t elapsed_seconds = 0;
+volatile int isPressed;
 
 
+void button(void *param){
+  while(1){
+    for (int i = 0; i < 7; i++) {
+      if(digitalRead(buttonPins[i]) == LOW){ // LOW = pressed
+        isPressed = buttonPins[i];
+      }
+      if(xSemaphoreTake(cur,portMAX_DELAY) && xSemaphoreTake(clock_data,portMAX_DELAY)){
+        switch(isPressed){
+          case 4:{
+            isPressed = 10;
+            if(selected==0){
+              cursor[0]+=1;
+              cursor[0]%=4;
+           
+            }
+            else{
+              if(cursor[0]==0 and cursor[1]==0){
+                break;
+              }
+              else{
+                if(cursor[0]==1){
+                  if(data[cursor[1]].hour==0){
+                    data[cursor[1]].hour=99;
+                  }
+                  else{
+                    data[cursor[1]].hour-=1;
+                  }
+                }
+                else if(cursor[0]==2){
+                  if(data[cursor[1]].minute==0){
+                    data[cursor[1]].minute=59;
+                  }
+                  else{
+                    data[cursor[1]].minute-=1;
+                  }
+                }
+                else if(cursor[0]==3){
+                  if(data[cursor[1]].sec==0){
+                    data[cursor[1]].sec=59;
+                  }
+                  else{
+                    data[cursor[1]].sec-=1;
+                  }
+                }
+              }
+            }
+            break;
+           
+          }
+          case 12:{
+            isPressed = 10;
+            if(selected==0){
+              if(cursor[0]==0){
+                cursor[0]=3;
+              }
+              else{
+                cursor[0]-=1;
+              }
+              break;
+            }
+            else{
+              if(cursor[0]==0 and cursor[1]==0){
+                break;
+              }
+              else{
+                if(cursor[0]==1){
+                  if(data[cursor[1]].hour==99){
+                    data[cursor[1]].hour=0;
+                  }
+                  else{
+                    data[cursor[1]].hour+=1;
+                  }
+                }
+                else if(cursor[0]==2){
+                  if(data[cursor[1]].minute==59){
+                    data[cursor[1]].minute=0;
+                  }
+                  else{
+                    data[cursor[1]].minute+=1;
+                  }
+                }
+                else if(cursor[0]==3){
+                  if(data[cursor[1]].sec==59){
+                    data[cursor[1]].sec=0;
+                  }
+                  else{
+                    data[cursor[1]].sec+=1;
+                  }
+                }
+              }
+            }
+            break;
+          }
+          case 14:{
+            isPressed = 10;
+            if(selected==0){
+              cursor[1]+=1;
+              cursor[1]%=3;
+              break;
+            }
+            else{
+              if(cursor[0]==0){
+                if(data[cursor[1]].mode==1){
+                  data[cursor[1]].mode = 0;
+                }
+                else{
+                  data[cursor[1]].mode = 1;
+                }
+                
+              }
+              break;
+            }
+          }
+          case 13:{
+            isPressed = 10;
+            if(selected==0){
+              if(cursor[1]==0){
+                cursor[1]=2;
+              }
+              else{
+                cursor[1]-=1;
+              }
+              break;
+            }
+            else{
+              if(cursor[0]==0){
+                if(data[cursor[1]].mode==1){
+                  data[cursor[1]].mode = 0;
+                }
+                else{
+                  data[cursor[1]].mode = 1;
+                }
+                
+              }
+              break;
+            }
+          }
+          case 5:{
+            isPressed = 10;
+            selected = (selected + 1)%2;
+            break;
+          }
+          case 15:{
+            isPressed = 10;
+            if(xSemaphoreTake(status_c,portMAX_DELAY)){
+              status[cursor[1]] = 1;
+              cursor[0] = 0;
+              xSemaphoreGive(status_c);
+            
+            }
+            selected = 0;
+            break;
+          }
+          case 0:{
+            isPressed = 10;
+            xSemaphoreGive(cur);
+            xSemaphoreGive(clock_data);
+            int count = 0;
+            while(digitalRead(buttonPins[i]) == LOW && count<=4){
+              count+=1;
+              vTaskDelay(1000);
+            }
+            if(xSemaphoreTake(cur,portMAX_DELAY) && xSemaphoreTake(clock_data,portMAX_DELAY)){
+              if(xSemaphoreTake(status_c,portMAX_DELAY)){
+                status[cursor[1]] = 0;
+                cursor[0] = 0;
+                xSemaphoreGive(status_c);
+              
+              }
+              if(count>=4){
+                data[cursor[1]].hour = 0;
+                data[cursor[1]].minute = 0;
+                data[cursor[1]].sec = 0;
+                data[cursor[1]].mode = 0;
+                if(xSemaphoreTake(blink_fn,portMAX_DELAY)){
+                  blink[cursor[1]]=0;
+                  toggle = 0;
+                  selected = 0;
+                  digitalWrite(BUZZER_PIN,LOW);
+                  xSemaphoreGive(blink_fn);
 
-TimerHandle_t stopwatchTimer;
-
-
-
-// Reads button state (simple debounce)
-bool isButtonPressed(int pin) {
-  static uint32_t lastPressTime[40] = {0};
-  bool state = !digitalRead(pin);
-  if (state && (millis() - lastPressTime[pin] > 200)) {
-    lastPressTime[pin] = millis();
-    return true;
+                }
+              }
+            }
+            
+            
+            break;
+          }
+          default:
+          break;
+        }
+        xSemaphoreGive(cur);
+        xSemaphoreGive(clock_data);
+      }
+    }
+    vTaskDelay(pdMS_TO_TICKS(200));
+    last_up=10;
+    
   }
-  return false;
 }
 
+void timer1(void *param){
+  while(1){
+    vTaskDelay(pdMS_TO_TICKS(1000));
+    if(xSemaphoreTake(clock_data,portMAX_DELAY) && xSemaphoreTake(status_c,portMAX_DELAY) ){
+      if(status[0]==1){
+        if(data[0].mode==1){
+          if(data[0].sec==59){
+            if(data[0].minute==59){
+              data[0].hour+=1;
+              data[0].minute=0;
+            }
+            else{
+              data[0].minute+=1;
+              data[0].sec=0;
+            }
 
+          }
+          else{
+            data[0].sec+=1;
+          }
+        }
+        else{
+          if(data[0].hour==0 && data[0].minute==0 && data[0].sec==0){
+            if(xSemaphoreTake(blink_fn,portMAX_DELAY)){
+              blink[0]=1;
+              xSemaphoreGive(blink_fn);
+            }
+            
+          }
+          else{
+            if(data[0].sec==0){
+              if(data[0].minute==0){
+                data[0].hour-=1;
+                data[0].minute=59;
+              }
+              else{
+                data[0].minute-=1;
+                data[0].sec=59;
+              }
 
-// Timer callback (called every 1 second if running)
-void timerCallback(TimerHandle_t xTimer) {
-  if (running) {
-    elapsed_seconds++;
+            }
+            else{
+              data[0].sec-=1;
+            }
+          }
+        }
+      }
+      if(status[1]==1){
+        if(data[1].mode==1){
+          if(data[1].sec==59){
+            if(data[1].minute==59){
+              data[1].hour+=1;
+              data[1].minute=0;
+            }
+            else{
+              data[1].minute+=1;
+              data[1].sec=0;
+            }
+
+          }
+          else{
+            data[1].sec+=1;
+          }
+        }
+        else{
+          if(data[1].hour==0 && data[1].minute==0 && data[1].sec==0){
+            if(xSemaphoreTake(blink_fn,portMAX_DELAY)){
+              blink[1]=1;
+              xSemaphoreGive(blink_fn);
+            }
+            
+          }
+          else{
+            if(data[1].sec==0){
+              if(data[1].minute==0){
+                data[1].hour-=1;
+                data[1].minute=59;
+              }
+              else{
+                data[1].minute-=1;
+                data[1].sec=59;
+              }
+
+            }
+            else{
+              data[1].sec-=1;
+            }
+          }
+        }
+      }
+      if(status[2]==1){
+        if(data[2].mode==1){
+          if(data[2].sec==59){
+            if(data[2].minute==59){
+              data[2].hour+=1;
+              data[2].minute=0;
+            }
+            else{
+              data[2].minute+=1;
+              data[2].sec=0;
+            }
+
+          }
+          else{
+            data[2].sec+=1;
+          }
+        }
+        else{
+          if(data[2].hour==0 && data[2].minute==0 && data[2].sec==0){
+            if(xSemaphoreTake(blink_fn,portMAX_DELAY)){
+              blink[2]=1;
+              xSemaphoreGive(blink_fn);
+            }
+            
+          }
+          else{
+            if(data[2].sec==0){
+              if(data[2].minute==0){
+                data[2].hour-=1;
+                data[2].minute=59;
+              }
+              else{
+                data[2].minute-=1;
+                data[2].sec=59;
+              }
+
+            }
+            else{
+              data[2].sec-=1;
+            }
+          }
+        }
+      }
+      xSemaphoreGive(clock_data);
+      xSemaphoreGive(status_c);
+    }
+    
+    last_up = 10;
+  }
+  
+}
+
+void buzzer(void *param){
+  while(1){
+    if(xSemaphoreTake(blink_fn,portMAX_DELAY)){
+      int temp = 0;
+      for(int i=0;i<3;i++){
+        temp+=blink[i];
+      }
+      if(temp>=1){
+        if(toggle==0){
+          digitalWrite(BUZZER_PIN,HIGH);
+          toggle  =1;
+        }
+        else{
+          digitalWrite(BUZZER_PIN,LOW);
+          toggle = 0;
+        }
+      }
+      xSemaphoreGive(blink_fn);
+    }
+    vTaskDelay(pdMS_TO_TICKS(1000));
   }
 }
 
+void mainScreen(void *param){
+  while(1){
 
+    if(curr_pos==0 && last_up!=curr_pos){
+      display.clearDisplay();
+      display.setTextSize(1);       // Smallest text
+      display.setTextColor(WHITE);
 
-// Task: Reads button inputs
-void ButtonTask(void *param) {
-  while (1) {
-    if (isButtonPressed(START_BUTTON_PIN)) {
-      running = true;
-    } else if (isButtonPressed(STOP_BUTTON_PIN)) {
-      running = false;
-    } else if (isButtonPressed(RESET_BUTTON_PIN)) {
-      running = false;
-      elapsed_seconds = 0;
-    }
-    vTaskDelay(pdMS_TO_TICKS(50));
+      
+      // Coordinate
+      for (int i = 0; i < 3; i++) {
+        int x = i * (boxWidth + gap);
+        
+        // Draw box
+        display .drawRect(x, y, boxWidth, boxHeight, WHITE);
+        display.setCursor(x + 2 + 14, 7);
+        if(xSemaphoreTake(clock_data,portMAX_DELAY)){
+          if(data[i].mode==0){
+            display.print("TR"); 
+            
+            
+            
+          }
+          else{
+            display.print("SW");
+          }
+          xSemaphoreGive(clock_data);
+        }
+        
+        display.setCursor(x + 3, y + 5);
+        display.print("Hr");       // First number
+        display.setCursor(x+40-3-12, y + 5);
+        display.print(data[i].hour);
+        display.setCursor(x + 3, y + 14);
+        display.print("Min"); // Second number
+        display.setCursor(x+40-3-12, y + 14);
+        display.print(data[i].minute);
+        display.setCursor(x + 3, y+25);
+        display.print("Sec"); // Second number
+        display.setCursor(x+40-3-12, y+25);
+        display.print(data[i].sec);
+        
+   
+      }
+      last_up = curr_pos;
+      if(xSemaphoreTake(cur,portMAX_DELAY)){
+        
+        display.fillRect(matrix[cursor[0]][cursor[1]][0], matrix[cursor[0]][cursor[1]][1], matrix[cursor[0]][cursor[1]][2], matrix[cursor[0]][cursor[1]][3], INVERSE);
+        xSemaphoreGive(cur);
+      }
+
+      if(xSemaphoreTake(blink_fn,portMAX_DELAY)){
+        for(int i=0;i<3;i++){
+          int x = i * (boxWidth+gap);
+          if(blink[i]==1){
+            if(toggle==1){
+              display .fillRect(x, y, boxWidth, boxHeight, INVERSE);
+              display.drawRect(matrix[0][i][0], matrix[0][i][1], matrix[0][i][2], matrix[0][i][3], WHITE);
+
+            }
+            else{
+              display.drawRect(matrix[0][i][0], matrix[0][i][1], matrix[0][i][2], matrix[0][i][3], BLACK);
+            }
+          }
+        }
+        xSemaphoreGive(blink_fn);
+      }
+      display.display();
+    }
   }
 }
-
-
-
-// Task: Displays stopwatch time
-void DisplayTask(void *param) {
-  while (1) {
-    Serial.printf("Elapsed Time: %02d:%02d:%02d\r\n", elapsed_seconds / 3600, (elapsed_seconds / 60) % 60, elapsed_seconds % 60);
-    vTaskDelay(pdMS_TO_TICKS(1000));
-  }
-}
-
 
 
 void setup() {
-  Serial.begin(115200);
-
-
-
-  pinMode(START_BUTTON_PIN, INPUT_PULLUP);
-  pinMode(STOP_BUTTON_PIN, INPUT_PULLUP);
-  pinMode(RESET_BUTTON_PIN, INPUT_PULLUP);
-
-
-
-  // Create timer with 1-second interval
-  stopwatchTimer = xTimerCreate("Stopwatch Timer", pdMS_TO_TICKS(1000), pdTRUE, NULL, timerCallback);
-  if (stopwatchTimer != NULL) {
-    xTimerStart(stopwatchTimer, 0);
+  display.begin(SSD1306_SWITCHCAPVCC, 0x3C);
+  clock_data = xSemaphoreCreateMutex(); 
+  status_c =  xSemaphoreCreateMutex(); 
+  cur =  xSemaphoreCreateMutex(); 
+  blink_fn = xSemaphoreCreateMutex(); 
+  int x = 0;
+  while(x<2){
+    display.clearDisplay();
+    display.display();
+    delay(500);
+    display.drawBitmap(0, 0, myBitmap, 128, 64, WHITE);
+    display.display();
+    delay(500);
+    x++;
   }
 
+  
+ 
+  if (xSemaphoreTake(clock_data, portMAX_DELAY)) {
+    data[0].id = 0;data[1].id = 1;data[2].id = 2;
+    data[0].mode = 0;data[1].mode = 0;data[2].mode = 0;
+    data[0].minute = 0;data[1].minute = 0;data[2].minute = 0;
+    data[0].sec = 0;data[1].sec = 0;data[2].sec = 0;
+    data[0].hour = 0;data[1].hour = 0;data[2].hour = 0;
+    xSemaphoreGive(clock_data);
+  }
+  
+  for (int i = 0; i < 7; i++) {
+    pinMode(buttonPins[i], INPUT_PULLUP);
+  }
 
+  pinMode(BUZZER_PIN,OUTPUT);
 
-  // Create tasks
-  xTaskCreate(ButtonTask, "Button Task", 2048, NULL, 1, NULL);
-  xTaskCreate(DisplayTask, "Display Task", 2048, NULL, 1, NULL);
+  xTaskCreatePinnedToCore(buzzer, "buzzer", 1024, NULL, 1, NULL, 1);
+  xTaskCreatePinnedToCore(timer1, "timer", 2048, NULL, 1, NULL, 1);
+  xTaskCreatePinnedToCore(button, "button", 2048, NULL, 1, NULL, 1);
+  xTaskCreatePinnedToCore(mainScreen, "mainScreen", 2048, NULL, 1, &mainHandle, 1);
+
 }
-
-
 
 void loop() {
-  // Nothing here. All handled by FreeRTOS tasks.
+  // Nothing here
 }
- 
-
-
-
-Bro this is stop watch code bro
