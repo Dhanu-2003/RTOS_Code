@@ -8,6 +8,26 @@ Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
 const int buttonPins[7] = {0, 15, 4, 5, 13, 12, 14};
 
+volatile bool buttonPressed[7] = {false};
+
+void IRAM_ATTR handleInterrupt0() { buttonPressed[0] = true; }
+void IRAM_ATTR handleInterrupt1() { buttonPressed[1] = true; }
+void IRAM_ATTR handleInterrupt2() { buttonPressed[2] = true; }
+void IRAM_ATTR handleInterrupt3() { buttonPressed[3] = true; }
+void IRAM_ATTR handleInterrupt4() { buttonPressed[4] = true; }
+void IRAM_ATTR handleInterrupt5() { buttonPressed[5] = true; }
+void IRAM_ATTR handleInterrupt6() { buttonPressed[6] = true; }
+
+void (*interruptHandlers[7])() = {
+  handleInterrupt0,
+  handleInterrupt1,
+  handleInterrupt2,
+  handleInterrupt3,
+  handleInterrupt4,
+  handleInterrupt5,
+  handleInterrupt6
+};
+
 int boxWidth = 40;
 int boxHeight = 40;
 int gap = 2;
@@ -124,12 +144,15 @@ SemaphoreHandle_t clock_data;
 volatile int isPressed;
 
 
+
 void button(void *param){
   while(1){
     for (int i = 0; i < 7; i++) {
-      if(digitalRead(buttonPins[i]) == LOW){ // LOW = pressed
+      if(buttonPressed[i]){ // LOW = pressed
         isPressed = buttonPins[i];
+        
       }
+      buttonPressed[i]=false;
       if(xSemaphoreTake(cur,portMAX_DELAY) && xSemaphoreTake(clock_data,portMAX_DELAY)){
         switch(isPressed){
           case 4:{
@@ -318,7 +341,7 @@ void button(void *param){
         xSemaphoreGive(clock_data);
       }
     }
-    vTaskDelay(pdMS_TO_TICKS(200));
+    vTaskDelay(pdMS_TO_TICKS(100));
     last_up=10;
     
   }
@@ -335,6 +358,7 @@ void timer1(void *param){
               if(data[i].minute==59){
                 data[i].hour+=1;
                 data[i].minute=0;
+                data[i].sec = 0;
               }
               else{
                 data[i].minute+=1;
@@ -359,6 +383,7 @@ void timer1(void *param){
                 if(data[i].minute==0){
                   data[i].hour-=1;
                   data[i].minute=59;
+                  data[i].sec=59;
                 }
                 else{
                   data[i].minute-=1;
@@ -502,6 +527,7 @@ void setup() {
   
   for (int i = 0; i < 7; i++) {
     pinMode(buttonPins[i], INPUT_PULLUP);
+    attachInterrupt(digitalPinToInterrupt(buttonPins[i]), interruptHandlers[i], FALLING);  // or RISING/CHANGE
   }
 
   pinMode(BUZZER_PIN,OUTPUT);
